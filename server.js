@@ -21,7 +21,8 @@ var port = process.env.PORT || 5000;
 app.disable('etag');
 
 // Connect to our mongo database
-mongoose.connect('mongodb://localhost/react-tweets');
+// mongoose.connect('mongodb://localhost/react-tweets');
+mongoose.connect('mongodb://scott:root@ds013024.mlab.com:13024/heroku_bpp024hv');
 
 // Create a new ntwitter instance
 var twit = new twitter(config.twitter);

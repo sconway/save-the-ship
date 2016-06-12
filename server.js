@@ -11,7 +11,7 @@ var express = require('express'),
 
 // Create an express instance and set a port variable
 var app = express();
-var port = process.env.PORT || 13024;
+var port = process.env.PORT || 1243;
 
 // Set handlebars as the templating engine
 // app.engine('handlebars', exphbs({ defaultLayout: 'main'}));

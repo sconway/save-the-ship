@@ -72,7 +72,8 @@
         
 
         
-        var socket = io.connect('https://localhost:1243');
+        // var socket = io.connect('https://localhost:1243');
+        var socket = io();
         var self = this;
 
         socket.on('tweet', function (data) {

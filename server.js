@@ -11,7 +11,7 @@ var express = require('express'),
 
 // Create an express instance and set a port variable
 var app = express();
-// var port = process.env.PORT || 1243;
+var port = process.env.PORT || 1243;
 
 // Set handlebars as the templating engine
 // app.engine('handlebars', exphbs({ defaultLayout: 'main'}));
@@ -40,10 +40,10 @@ app.get('/page/:page/:skip', routes.page);
 // Set /public as our static content dir
 app.use("/", express.static(__dirname + "/public"));
 
-// Fire this bitch up (start our server)
-// var server = http.createServer(app).listen(port, function() {
-//   console.log('Express server listening on port ' + port);
-// });
+Fire this bitch up (start our server)
+var server = http.createServer(app).listen(port, function() {
+  console.log('Express server listening on port ' + port);
+});
 
 // Initialize socket.io
 var io = require('socket.io').listen(server);

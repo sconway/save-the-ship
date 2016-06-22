@@ -57,8 +57,8 @@ initScene = function() {
     
 
     
-    // var socket = io.connect();
-    var socket = io.connect('http://localhost:1243');
+    var socket = io.connect();
+    // var socket = io.connect('http://localhost:1243');
     // var socket = io();
     var self = this;
 

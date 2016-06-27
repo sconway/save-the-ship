@@ -1,3 +1,18 @@
+input:focus::-webkit-input-placeholder {
+  color: transparent; }
+
+input:focus:-moz-placeholder {
+  color: transparent; }
+
+/* FF 4-18 */
+input:focus::-moz-placeholder {
+  color: transparent; }
+
+/* FF 19+ */
+input:focus:-ms-input-placeholder {
+  color: transparent; }
+
+/* IE 10+ */
 .search-wrapper {
   position: absolute;
   width: 100%; }
@@ -45,7 +60,8 @@
   color: #fff;
   position: fixed;
   width: 30%;
-  height: 100%;
+  height: 80%;
+  top: 5%;
   overflow-y: scroll;
   padding: 30px;
   opacity: 1;
@@ -55,5 +71,11 @@
     font-size: 14px;
     list-style: none;
     margin-bottom: 15px; }
+    .tweet-box li.good {
+      color: #0F0; }
+    .tweet-box li.bad {
+      color: #F00; }
+    .tweet-box li.neutral {
+      color: #00F; }
 
 /*# sourceMappingURL=style.css.map */

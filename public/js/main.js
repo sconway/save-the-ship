@@ -3,11 +3,14 @@
 Physijs.scripts.worker = '../js/physijs_worker.js';
 Physijs.scripts.ammo = '../js/ammo.js';
 
-var initScene, render, boxes = [], spawnBox, loader,
-    renderer, render_stats, physics_stats, scene, ground_material, 
-    ground, upGround, light, camera, water, mirrorMesh, light, controls,
-    spacesphere,
-    numCubes = 0;
+var initScene, render, tweets = [], objects = [], spawnBox, loader, raycaster,
+    renderer, render_stats, physics_stats, scene, ground_material, ground, ground_geometry, ground_material,
+    ground, upGround, light, camera, water, mirrorMesh, light, controls, NoiseGen,
+    spacesphere, INTERSECTED, loader, boat,
+    numCubes = 0,
+    paused = false,
+    curMouse = new THREE.Vector2(), 
+    mouse = new THREE.Vector2();
 
 
 var parameters = {
@@ -35,10 +38,9 @@ initScene = function() {
     // Creates a physijs scene with gravity and sets it to update
     scene = new Physijs.Scene;
     scene.setGravity(new THREE.Vector3( 0, -70, 0 ));
-    scene.addEventListener('update', function() {
-        scene.simulate( undefined, 1 );
-    });
 
+    // initialize the raycaster, which will track hovered objects
+    raycaster = new THREE.Raycaster();
     
     
     addCamera();
@@ -64,13 +66,36 @@ initScene = function() {
 
     socket.on('tweet', function (data) {
       console.log("received tweet");
-      boxes.push(data);
+      tweets.push(data);
     });
     
+    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    window.addEventListener( 'resize', onWindowResize, false );
     requestAnimationFrame( render );
     scene.simulate();
     initFeed();
 };
+
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    controls.handleResize();
+}
+
+
+/**
+ * Called every time the mouse moves, it updates the current position
+ * of the cursor.
+ */
+function onDocumentMouseMove( event ) {
+    event.preventDefault();
+    curMouse.x = event.clientX;
+    curMouse.y = event.clientY;
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
 
 
 /**
@@ -79,10 +104,10 @@ initScene = function() {
  */
 function initFeed() {
     setInterval(function() {
-        if ( boxes[numCubes] ) {
+        if ( tweets[numCubes] && !paused ) {
             console.log("getting box: ", numCubes);
-            createBox(boxes[numCubes]);
-            prependText(boxes[numCubes]);
+            createBox(tweets[numCubes]);
+            prependText(tweets[numCubes]);
             numCubes++;
         }
     }, 1000);
@@ -101,6 +126,9 @@ function prependText(tweet) {
 }
 
 
+/**
+ * Add the ThreeJS camera to the scene at the specified position.
+ */
 function addCamera() {
     camera = new THREE.PerspectiveCamera(
         35,
@@ -108,7 +136,7 @@ function addCamera() {
         1,
         100000
     );
-    camera.position.set( 0, 250, 2500 );
+    camera.position.set( 0, 0, 300 );
     camera.lookAt( scene.position );
     scene.add( camera );
 }
@@ -122,6 +150,11 @@ function addLight() {
 }
 
 
+
+/**
+ * Adds the container for the display and maps an image around it,
+ * creating a boundary for the scene.
+ */
 function addSphereContainer() {
     var spacetex = THREE.ImageUtils.loadTexture('../images/earth-moon.jpg');
     spacetex.wrapS = spacetex.wrapT = THREE.RepeatWrapping;
@@ -142,10 +175,14 @@ function addSphereContainer() {
 }
 
 
+/*
+ * Adds the Physijs base that the falling objects will hit. This includes
+ * the boat model and the Physijs floor that sits inside it.
+ */
 function addBase() {
     // Ground
     ground_material = Physijs.createMaterial(
-        new THREE.MeshLambertMaterial({ color: 0x0000ff }),
+        new THREE.MeshLambertMaterial({ color: 0xFFFFFF }),
         .8, // high friction
         .3 // low restitution
     );
@@ -153,16 +190,29 @@ function addBase() {
     // ground_material.map.repeat.set( 3, 3 );
     
     ground = new Physijs.BoxMesh(
-        new THREE.BoxGeometry(1000, 100, 500),
+        new THREE.BoxGeometry(290, 1, 180),
         ground_material,
         0 // mass
     );
 
     ground.name = "floor";
     ground.receiveShadow = true;
-    ground.position.y = 0;
-    // ground.position.z = 500;
+    ground.position.y = 30;
+    ground.__dirtyPosition = true;
     scene.add( ground );
+
+    
+    // BEGIN Clara.io JSON loader code
+    var objectLoader = new THREE.ObjectLoader();
+    objectLoader.load("/json/fad-deployment-boat.json", function ( obj ) {
+        boat = obj.children[0];
+
+        boat.scale.set(100, 100, 100);
+        boat.position.set(-150, 5, 0);
+        boat.rotation.z = 1.58;
+
+        scene.add( boat );
+    } );
 }
 
 
@@ -196,38 +246,19 @@ function addWater() {
  */
 function handleCollision( upLift ) {
 
-    ground.position.set( 
-        0, 
-        upLift ? ground.position.y + 1 : ground.position.y - 1, 
-        0 );
+    ground.position.y -= upLift ? -1 : 1;
     ground.__dirtyPosition = true;
 
     // You may also want to cancel the object's velocity
     ground.setLinearVelocity(new THREE.Vector3(0, 0, 0));
     ground.setAngularVelocity(new THREE.Vector3(0, 0, 0));
 
+    boat.position.y -= upLift ? -1 : 1;
+
     scene.simulate();
     renderer.render( scene, camera );
+
 }
-
-
-// /**
-//  * Determines whether or not a tweet is 'good'
-//  */
-// function tweetTone(tweet) {
-//     var text   = tweet.toLowerCase(),
-//         isGood = text.indexOf("love") >= 0,
-//         isBad  = text.indexOf("hate") >= 0,
-//         isNeutral = isGood && isBad;
-
-//     if ( isNeutral ) {
-//         return 2;
-//     } else if ( isGood ) {
-//         return 1;
-//     }else if ( isBad ) {
-//         return 0;
-//     }
-// }
 
 
 /**
@@ -238,32 +269,19 @@ function handleCollision( upLift ) {
  * @param     data : Tweet object
  */
 function createBox(data) {
-    // console.log("creating box");
+
     var box, material, color,
         mutex = true,
-        // tone  = tweetTone(data.text),
         tweetLen = data.body.length;
 
     switch (data.tone) {
         case 0: // bad
             console.log("bad tweet");
             color = 0xff0000;
-            // box.addEventListener( 'collision', function() {
-            //     if ( mutex ) {
-            //         mutex = false;
-            //         handleCollision(true);
-            //     }
-            // });
             break;
         case 1: // good
             console.log("good tweet");
             color = 0x00ff00;
-            // box.addEventListener( 'collision', function() {
-            //     if ( mutex ) {
-            //         mutex = false;
-            //         handleCollision(false);
-            //     }
-            // });
             break;
         case 2: // good and bad
             console.log("good and bad tweet");
@@ -275,7 +293,7 @@ function createBox(data) {
     }
 
     
-    var box_geometry = new THREE.BoxGeometry( tweetLen/4, tweetLen/4, tweetLen/4 );
+    var box_geometry = new THREE.BoxGeometry( tweetLen/7, tweetLen/7, tweetLen/7 );
 
     material = Physijs.createMaterial(
         new THREE.MeshLambertMaterial({ color: color }),
@@ -295,15 +313,16 @@ function createBox(data) {
     box.addEventListener( 'collision', function() {
         if ( mutex ) {
             mutex = false;
-            handleCollision(false);
+            handleCollision(data.tone === 0 ? false : true);
         }
     });
 
     box.collisions = 0;
+    box.name = "tweet-box";
 
     box.position.set(
-        Math.random() * 100 - 50,
-        500 + (Math.random() * 100 - 50),
+        0,
+        200,
         0
     );
     
@@ -315,6 +334,7 @@ function createBox(data) {
     
     box.castShadow = true;
     
+    objects.push( box );
     scene.add( box );
     // console.log("added box");
 
@@ -329,31 +349,132 @@ function createBox(data) {
 function handleSearchTerm() {
     var $searchWrapper = $(".search-wrapper");
 
-    $("#searchIcon").on('click', function() {
+    $(document).on('click', function(event) {
         
         if ( $searchWrapper.hasClass("active") ) {
-            if ($(".search-box").val()) {
+
+            // Use the value if there is one; remove the search box if not
+            if ( $(".search-box").val() ) {
                 location.search = 'term=' + $(".search-box").val();
             } else {
                 $searchWrapper.removeClass("active");
             }
-        } else {
-            $searchWrapper.addClass("active")
+
         }
         
     });
+
+    // Toggles the search display and functionality
+    $("#searchIcon").click( function( event ) {
+        event.stopPropagation();
+
+        if ( $searchWrapper.hasClass("active") ) {
+
+            // Use the value if there is one; remove the search box if not
+            if ( $("#searchBox").val() ) {
+                location.search = 'term=' + $(".search-box").val();
+            } else {
+                $searchWrapper.removeClass("active");
+            }
+
+        } else if( $(event.target).parents("#searchIcon").length > 0 ){ // icon
+            $searchWrapper.addClass("active");
+            $(".search-box").focus();
+        }
+
+    });
+
+    // If the enter key is pressed, check to see if a value should submit.
+    $("#searchBox").keypress(function(event) {
+
+        if (event.which == 13) {
+            event.preventDefault();
+
+            if ( $("#searchBox").val() ) {
+                location.search = 'term=' + $(".search-box").val();
+            }
+
+        }
+
+    });
+
+    // Stop the document handler from seeing any click in the search box
+    $("#searchBox").click( function( event ) { event.stopPropagation(); });
 }
 
 
+/**
+ * Called when there is an intersection. Pauses the current animation and
+ * displays the text corresponding to the hovered cube. 
+ */
+function onIntersection( object ) {
+    if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+
+    INTERSECTED = object;
+    INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+    INTERSECTED.material.emissive.setHex( 0xffffff );
+    paused = true;
+
+    var index = objects.indexOf( object ),
+        tone  = tweets[index].tone;
+
+    console.log(tone);
+
+    $($("#tweets li")[objects.length - index - 1])
+        .addClass( tone === 0 ? "bad" : (tone === 1 ? "good" : "neutral") );
+
+}
+
+
+/**
+ * Called when there aren't any intersections. Performs default behavior. 
+ */
+function onNoIntersections() {
+    if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+    INTERSECTED = null;
+    paused = false;
+
+    // runs the physics engines
+    scene.simulate( undefined, 1 );
+
+    $("#tweets li").removeClass();
+}
+
+
+/**
+ * Called about 60 times per second, this function handles anything that
+ * needs updating constantly for animation.
+ */
 render = function() {
     requestAnimationFrame( render );
     water.material.uniforms.time.value += 1.0 / 60.0;
     controls.update();
     water.render();
     renderer.render( scene, camera );
+
+    // find intersections
+    raycaster.setFromCamera( mouse, camera );
+
+    var intersects = raycaster.intersectObjects( objects, true );
+
+
+    // Make sure something was intersected
+    if ( intersects.length > 0 ) {
+
+        // if a different object is hovered on and it's a tweet box..
+        if ( INTERSECTED != intersects[ 0 ].object ) {
+            onIntersection( intersects[ 0 ].object );
+        }
+
+    } else {
+        onNoIntersections();
+    }
+
 };
 
-$(window).load(function() {
+
+// Called when everything is loaded
+$(window).load( function () {
     initScene();
     handleSearchTerm();
 });

@@ -55,14 +55,9 @@ initScene = function() {
     controls.minDistance = 1000.0;
     controls.maxDistance = 5000.0;
     controls.maxPolarAngle = Math.PI * 0.495;
-    // controls.target.set( 0, 500, 0 );
-    
 
     
     var socket = io.connect();
-    // var socket = io.connect('http://localhost:1243');
-    // var socket = io();
-    var self = this;
 
     socket.on('tweet', function (data) {
       console.log("received tweet");
@@ -142,6 +137,10 @@ function addCamera() {
 }
 
 
+/**
+ * Add the ThreeJS lighting to the scene at the specified position.
+ * Controls the light and shadow effects and allows the mirroring to work.
+ */
 function addLight() {
     scene.add( new THREE.AmbientLight( 0x444444 ) );
     light = new THREE.DirectionalLight( 0xffffbb, 1 );
@@ -216,6 +215,10 @@ function addBase() {
 }
 
 
+/**
+ * Creates and adds the water simulation. The 'movement' is updated
+ * in the render function.
+ */
 function addWater() {
     waterNormals = new THREE.TextureLoader().load( '../images/waternormals.jpg' );
     waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;

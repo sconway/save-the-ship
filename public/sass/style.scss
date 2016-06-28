@@ -69,11 +69,17 @@ input:focus:-ms-input-placeholder { color:transparent; } /* IE 10+ */
 	width: 30%;
 	height: 80%;
 	top: 5%;
-	overflow-y: scroll;
-	padding: 30px;
+	overflow: hidden;
 	opacity:1;
 	transition: opacity 500ms ease;
 	-webkit-transition: opacity 500ms ease;
+	ul {
+		margin: 0;
+		padding: 0 45px 0 20px;
+		overflow-y: scroll;
+		height: 100%;
+		width: 90%;
+	}
 	li {
 		font-size: 14px;
 		list-style: none;

@@ -6,7 +6,7 @@ Physijs.scripts.ammo = '../js/ammo.js';
 var initScene, render, tweets = [], objects = [], spawnBox, loader, raycaster,
     renderer, render_stats, physics_stats, scene, ground_material, ground, ground_geometry, ground_material,
     ground, upGround, light, camera, water, mirrorMesh, light, controls, NoiseGen,
-    spacesphere, INTERSECTED, loader, boat,
+    spacesphere, INTERSECTED, loader, boat, mesh,
     numCubes = 0,
     paused = false,
     curMouse = new THREE.Vector2(), 
@@ -131,7 +131,7 @@ function addCamera() {
         1,
         100000
     );
-    camera.position.set( 0, 0, 300 );
+    camera.position.set( -434, 213, 875 );
     camera.lookAt( scene.position );
     scene.add( camera );
 }
@@ -155,22 +155,36 @@ function addLight() {
  * creating a boundary for the scene.
  */
 function addSphereContainer() {
-    var spacetex = THREE.ImageUtils.loadTexture('../images/earth-moon.jpg');
-    spacetex.wrapS = spacetex.wrapT = THREE.RepeatWrapping;
-    var spacesphereGeo = new THREE.SphereGeometry(5000,64,64);
-    var spacesphereMat = new THREE.MeshBasicMaterial({ 
-        map: spacetex,
-        side: THREE.DoubleSide
-    });
+    // var spacetex = THREE.ImageUtils.loadTexture('../images/earth-moon.jpg');
+    // spacetex.wrapS = spacetex.wrapT = THREE.RepeatWrapping;
+    // var spacesphereGeo = new THREE.SphereGeometry(3000,64,64);
+    // var spacesphereMat = new THREE.MeshBasicMaterial({ 
+    //     map: spacetex,
+    //     side: THREE.DoubleSide
+    // });
 
-    spacesphere = new THREE.Mesh(spacesphereGeo,spacesphereMat);
-    spacesphere.position.z = -1000
-    spacesphere.rotation.x = 0.25;
-    spacesphere.rotation.y = 7;
-    spacesphere.rotation.z = 0.75;
+    // spacesphere = new THREE.Mesh(spacesphereGeo,spacesphereMat);
+    // spacesphere.position.z = -1000
+    // spacesphere.rotation.x = 0.25;
+    // spacesphere.rotation.y = 7;
+    // spacesphere.rotation.z = 0.75;
 
-    spacesphere.name = "space";
-    scene.add(spacesphere);
+    // spacesphere.name = "space";
+    // scene.add(spacesphere);
+
+
+    var textureLoader = new THREE.TextureLoader();
+    var materials = [
+        new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/px.jpg' ) } ), // right
+        new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/nx.jpg' ) } ), // left
+        new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/py.jpg' ) } ), // top
+        new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/ny.jpg' ) } ), // bottom
+        new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/pz.jpg' ) } ), // back
+        new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/nz.jpg' ) } )  // front
+    ];
+    mesh = new THREE.Mesh( new THREE.BoxGeometry( 10000, 10000, 10000, 7, 7, 7 ), new THREE.MultiMaterial( materials ) );
+    mesh.scale.x = - 1;
+    scene.add(mesh);
 }
 
 
@@ -181,7 +195,7 @@ function addSphereContainer() {
 function addBase() {
     // Ground
     ground_material = Physijs.createMaterial(
-        new THREE.MeshLambertMaterial({ color: 0xFFFFFF }),
+        new THREE.MeshLambertMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0 }),
         .8, // high friction
         .3 // low restitution
     );
@@ -189,7 +203,7 @@ function addBase() {
     // ground_material.map.repeat.set( 3, 3 );
     
     ground = new Physijs.BoxMesh(
-        new THREE.BoxGeometry(290, 1, 180),
+        new THREE.BoxGeometry(290, 1, 140),
         ground_material,
         0 // mass
     );
@@ -203,12 +217,12 @@ function addBase() {
     
     // BEGIN Clara.io JSON loader code
     var objectLoader = new THREE.ObjectLoader();
-    objectLoader.load("/json/fad-deployment-boat.json", function ( obj ) {
+    objectLoader.load("/json/pirate-ship-fat.json", function ( obj ) {
         boat = obj.children[0];
 
         boat.scale.set(100, 100, 100);
-        boat.position.set(-150, 5, 0);
-        boat.rotation.z = 1.58;
+        boat.position.set(-40, -20, 5);
+        // boat.rotation.z = 1.58;
 
         scene.add( boat );
     } );
@@ -296,7 +310,7 @@ function createBox(data) {
     }
 
     
-    var box_geometry = new THREE.BoxGeometry( tweetLen/7, tweetLen/7, tweetLen/7 );
+    var box_geometry = new THREE.BoxGeometry( tweetLen/10, tweetLen/10, tweetLen/10 );
 
     material = Physijs.createMaterial(
         new THREE.MeshLambertMaterial({ color: color }),
@@ -380,7 +394,7 @@ function handleSearchTerm() {
                 $searchWrapper.removeClass("active");
             }
 
-        } else if( $(event.target).parents("#searchIcon").length > 0 ){ // icon
+        } else {
             $searchWrapper.addClass("active");
             $(".search-box").focus();
         }

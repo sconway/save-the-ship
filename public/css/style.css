@@ -19,6 +19,7 @@ input:focus:-ms-input-placeholder {
   .search-wrapper.active .search-box {
     opacity: 1; }
   .search-wrapper.active .search-icon path {
+    stroke: #fff;
     stroke-dashoffset: 10;
     stroke-dasharray: 200; }
   .search-wrapper.active + .tweet-box {
@@ -49,8 +50,8 @@ input:focus:-ms-input-placeholder {
   .search-icon:hover {
     cursor: pointer; }
   .search-icon path {
-    stroke: #fff;
-    stroke-width: 10px;
+    stroke: #000;
+    stroke-width: 5px;
     stroke-dasharray: 0;
     stroke-dashoffset: 0;
     transition: all 2s ease;
@@ -61,14 +62,14 @@ input:focus:-ms-input-placeholder {
   position: fixed;
   width: 30%;
   height: 80%;
-  top: 5%;
+  top: 10%;
   overflow: hidden;
   opacity: 1;
   transition: opacity 500ms ease;
   -webkit-transition: opacity 500ms ease; }
   .tweet-box ul {
     margin: 0;
-    padding: 0 45px 0 20px;
+    padding: 0 10% 0 20px;
     overflow-y: scroll;
     height: 100%;
     width: 90%; }

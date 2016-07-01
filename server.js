@@ -50,7 +50,7 @@ app.get('/', function(req, res) {
   // Initialize socket.io
   var io = require('socket.io').listen(server);
 
-  term = req.query.term || 'javascript';
+  term = req.query.term || 'a';
 
   if (twit.currentTwitStream) {
     twit.currentTwitStream.destroy();

@@ -4,10 +4,13 @@ Physijs.scripts.worker = '../js/physijs_worker.js';
 Physijs.scripts.ammo = '../js/ammo.js';
 
 var initScene, render, tweets = [], objects = [], spawnBox, loader, raycaster,
-    renderer, render_stats, physics_stats, scene, ground_material, ground, ground_geometry, ground_material,
-    ground, upGround, light, camera, water, mirrorMesh, light, controls, NoiseGen,
-    spacesphere, INTERSECTED, loader, boat, mesh,
+    renderer, render_stats, physics_stats, scene, ground_material, ground, 
+    ground_geometry, ground_material, ground, upGround, light, camera, water, 
+    mirrorMesh, light, controls, NoiseGen, spacesphere, INTERSECTED, loader, 
+    boat, mesh, $rows, feedInterval,
     numCubes = 0,
+    done = false,
+    feedMutex = false,
     paused = false,
     curMouse = new THREE.Vector2(), 
     mouse = new THREE.Vector2();
@@ -69,9 +72,13 @@ initScene = function() {
     requestAnimationFrame( render );
     scene.simulate();
     initFeed();
+    realTimeSearch();
 };
 
 
+/**
+ * re-renders the scene and its content when the window is resized.
+ */ 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -98,14 +105,16 @@ function onDocumentMouseMove( event ) {
  * from the array. It uses that data to create a box on the scene. 
  */
 function initFeed() {
-    setInterval(function() {
-        if ( tweets[numCubes] && !paused ) {
-            console.log("getting box: ", numCubes);
+
+    feedInterval = setInterval(function() {
+        if ( tweets[numCubes] && !paused && !feedMutex && !done ) {
             createBox(tweets[numCubes]);
             prependText(tweets[numCubes]);
+            $rows = $("#tweets li");
             numCubes++;
         }
     }, 1000);
+
 }
 
 
@@ -114,10 +123,38 @@ function initFeed() {
  * it is called. 
  */
 function prependText(tweet) {
-    console.log("appending tweet");
+    // console.log("appending tweet");
     var $li = "<li>" + tweet.body + "</li>";
 
     $("#tweets").prepend( $li );
+}
+
+
+/**
+ * Filters the tweets in the tweet box when there is something typed
+ * in the input field. The addition of cubes and the animation is 
+ * set to be stopped when there is a filter term present.
+ */
+function realTimeSearch() {
+
+    $('#tweetSearch').keyup(function() {
+        var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
+
+        // If there's no value in the tweet search field, resume
+        // the feed as it was before. Otherwise, set the mutex
+        // so the feed will not continue while we are filtering.
+        if ( val.length < 1 ) {
+            feedMutex = false;
+        } else {
+            feedMutex = true;
+
+            $rows.show().filter(function() {
+                var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
+                return !~text.indexOf( val );
+            }).hide();
+        }
+    });
+
 }
 
 
@@ -182,7 +219,7 @@ function addSphereContainer() {
         new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/pz.jpg' ) } ), // back
         new THREE.MeshBasicMaterial( { map: textureLoader.load( 'images/nz.jpg' ) } )  // front
     ];
-    mesh = new THREE.Mesh( new THREE.BoxGeometry( 10000, 10000, 10000, 7, 7, 7 ), new THREE.MultiMaterial( materials ) );
+    mesh = new THREE.Mesh( new THREE.BoxGeometry( 20000, 20000, 20000, 7, 7, 7 ), new THREE.MultiMaterial( materials ) );
     mesh.scale.x = - 1;
     scene.add(mesh);
 }
@@ -214,12 +251,14 @@ function addBase() {
     ground.__dirtyPosition = true;
     scene.add( ground );
 
-    
+    var texture = new THREE.TextureLoader().load( 'images/crate.gif' );
+
     // BEGIN Clara.io JSON loader code
     var objectLoader = new THREE.ObjectLoader();
     objectLoader.load("/json/pirate-ship-fat.json", function ( obj ) {
         boat = obj.children[0];
 
+        boat.material.map = texture;
         boat.scale.set(100, 100, 100);
         boat.position.set(-40, -20, 5);
         // boat.rotation.z = 1.58;
@@ -263,18 +302,27 @@ function addWater() {
  */
 function handleCollision( upLift ) {
 
-    ground.position.y -= upLift ? -1 : 1;
-    ground.__dirtyPosition = true;
+    // If the boat is still submerged, check whether it should
+    // be raised up, or sunk down. If it's out of the water, 
+    // remove the PhysiJS floor and stop the feed of cubes.
+    if ( boat.position.y < 10) {
+        ground.position.y -= upLift ? -1 : 1;
+        ground.__dirtyPosition = true;
 
-    // You may also want to cancel the object's velocity
-    ground.setLinearVelocity(new THREE.Vector3(0, 0, 0));
-    ground.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+        // You may also want to cancel the object's velocity
+        ground.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+        ground.setAngularVelocity(new THREE.Vector3(0, 0, 0));
 
-    boat.position.y -= upLift ? -1 : 1;
+        boat.position.y -= upLift ? -1 : 1;
+        scene.simulate();
+    } else {
+        feedMutex = true;
+        done = true;
+        scene.remove( ground );
+        rotateShip();
+    }
 
-    scene.simulate();
     renderer.render( scene, camera );
-
 }
 
 
@@ -293,15 +341,15 @@ function createBox(data) {
 
     switch (data.tone) {
         case 0: // bad
-            console.log("bad tweet");
+            // console.log("bad tweet");
             color = 0xff0000;
             break;
         case 1: // good
-            console.log("good tweet");
+            // console.log("good tweet");
             color = 0x00ff00;
             break;
         case 2: // good and bad
-            console.log("good and bad tweet");
+            // console.log("good and bad tweet");
             color = 0x0000ff;
             break;
         default:
@@ -353,9 +401,80 @@ function createBox(data) {
     
     objects.push( box );
     scene.add( box );
-    // console.log("added box");
 
 };// END create box
+
+
+/**
+ * Rotates the ship to face away from the user and then calls
+ * the function to move the ship out to sea.
+ */ 
+function rotateShip() {
+    new TWEEN.Tween(boat.rotation)
+        .to({
+            z: -4.8
+        }, 3000)
+        .easing( TWEEN.Easing.Quartic.InOut )
+        .onStart( function() {  
+            for ( var i = 0; i < objects.length; i++ ) {
+                scene.remove( objects[i] );
+            }
+        })
+        .onUpdate( function() {
+            renderer.render(scene, camera);
+        })
+        .onComplete( function() {
+            slideShip();
+            fadeShip();
+        })
+        .start();
+}
+
+
+/**
+ * Called after the ship is rotated, this function tweens its
+ * z position to move it away from the user.
+ */ 
+function slideShip() {
+    new TWEEN.Tween(boat.position)
+        .to({
+            z: -5000
+        }, 10000)
+        .easing( TWEEN.Easing.Quartic.In )
+        .onStart( function() {
+            boat.material.transparent = true;
+        })
+        .onUpdate( function() {
+            renderer.render(scene, camera);
+        })
+        .onComplete( function() {
+
+        })
+        .start();
+}
+
+
+/**
+ * Called after the ship is rotated, this function tweens its
+ * opacity so the ship is faded out.
+ */ 
+function fadeShip() {
+    new TWEEN.Tween(boat.material)
+        .to({
+            opacity: 0
+        }, 10000)
+        .easing( TWEEN.Easing.Quartic.In )
+        .onStart( function() {
+            boat.material.transparent = true;
+        })
+        .onUpdate( function() {
+            renderer.render(scene, camera);
+        })
+        .onComplete( function() {
+            
+        })
+        .start();
+}
 
 
 /**
@@ -364,6 +483,7 @@ function createBox(data) {
  * with the entered searh term.
  */
 function handleSearchTerm() {
+
     var $searchWrapper = $(".search-wrapper");
 
     $(document).on('click', function(event) {
@@ -464,6 +584,7 @@ function onNoIntersections() {
  */
 render = function() {
     requestAnimationFrame( render );
+    TWEEN.update();
     water.material.uniforms.time.value += 1.0 / 60.0;
     controls.update();
     water.render();

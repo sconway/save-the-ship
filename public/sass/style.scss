@@ -69,6 +69,7 @@ input:focus:-ms-input-placeholder { color:transparent; } /* IE 10+ */
 	position: fixed;
 	width: 30%;
 	height: 80%;
+	left: 10px;
 	top: 10%;
 	overflow: hidden;
 	opacity:1;
@@ -77,12 +78,13 @@ input:focus:-ms-input-placeholder { color:transparent; } /* IE 10+ */
 	ul {
 		margin: 0;
 		padding: 0 10% 0 20px;
+		overflow-x: hidden;
 		overflow-y: scroll;
 		height: 100%;
 		width: 90%;
 	}
 	li {
-		font-size: 14px;
+		font-size: 18px;
 		list-style: none;
 		margin-bottom: 15px;
 		&.good {
@@ -97,5 +99,18 @@ input:focus:-ms-input-placeholder { color:transparent; } /* IE 10+ */
 	}
 }
 
+
+// The search box for the listed tweets
+// to refine the results.
+.tweet-search {
+	background: rgba(51, 51, 51, 0.5);
+	border: 1px solid #fff;
+	display: block;
+	font-size: 18px;
+	margin: 0 auto 15px;
+	padding-left: 15px;
+	height: 50px;
+	width: 90%;
+}
 
 

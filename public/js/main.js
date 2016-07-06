@@ -305,16 +305,25 @@ function handleCollision( upLift ) {
     // If the boat is still submerged, check whether it should
     // be raised up, or sunk down. If it's out of the water, 
     // remove the PhysiJS floor and stop the feed of cubes.
-    if ( boat.position.y < 10) {
-        ground.position.y -= upLift ? -1 : 1;
-        ground.__dirtyPosition = true;
+    if ( boat.position.y < 10 ) {
 
-        // You may also want to cancel the object's velocity
-        ground.setLinearVelocity(new THREE.Vector3(0, 0, 0));
-        ground.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+        if ( boat.position.y > -45 ) {
+            ground.position.y -= upLift ? -1 : 1;
+            ground.__dirtyPosition = true;
 
-        boat.position.y -= upLift ? -1 : 1;
-        scene.simulate();
+            // You may also want to cancel the object's velocity
+            ground.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+            ground.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+
+            boat.position.y -= upLift ? -1 : 1;
+            scene.simulate();
+        } else {
+            feedMutex = true;
+            done = true;
+            scene.remove( ground );
+            sinkShip();
+        }
+        
     } else {
         feedMutex = true;
         done = true;
@@ -406,6 +415,16 @@ function createBox(data) {
 
 
 /**
+ * Removes all of the physiJS boxes from the scene.
+ */
+function removeBoxes() {
+    for ( var i = 0; i < objects.length; i++ ) {
+        scene.remove( objects[i] );
+    }
+}
+
+
+/**
  * Rotates the ship to face away from the user and then calls
  * the function to move the ship out to sea.
  */ 
@@ -414,11 +433,9 @@ function rotateShip() {
         .to({
             z: -4.8
         }, 3000)
-        .easing( TWEEN.Easing.Quartic.InOut )
+        .easing( TWEEN.Easing.Linear.None )
         .onStart( function() {  
-            for ( var i = 0; i < objects.length; i++ ) {
-                scene.remove( objects[i] );
-            }
+            removeBoxes();
         })
         .onUpdate( function() {
             renderer.render(scene, camera);
@@ -440,7 +457,7 @@ function slideShip() {
         .to({
             z: -5000
         }, 10000)
-        .easing( TWEEN.Easing.Quartic.In )
+        .easing( TWEEN.Easing.Linear.None )
         .onStart( function() {
             boat.material.transparent = true;
         })
@@ -463,7 +480,7 @@ function fadeShip() {
         .to({
             opacity: 0
         }, 10000)
-        .easing( TWEEN.Easing.Quartic.In )
+        .easing( TWEEN.Easing.Linear.None )
         .onStart( function() {
             boat.material.transparent = true;
         })
@@ -472,6 +489,28 @@ function fadeShip() {
         })
         .onComplete( function() {
             
+        })
+        .start();
+}
+
+
+/**
+ * Called when the ship has sunk low enough, this function sinks the
+ * ship down all the way, so it is below the water.
+ */ 
+function sinkShip() {
+    new TWEEN.Tween(boat.position)
+        .to({
+            y: -300
+        }, 4000)
+        .easing( TWEEN.Easing.Quartic.In )
+        .onStart( function() {
+            removeBoxes();
+        })
+        .onUpdate( function() {
+            renderer.render(scene, camera);
+        })
+        .onComplete( function() {
         })
         .start();
 }
